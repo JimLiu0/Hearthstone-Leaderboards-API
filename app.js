@@ -8,7 +8,8 @@ const axios = require('axios').default;
 const cron = require('node-cron');
 const mongoClient = require('mongodb').MongoClient;
 
-const dbUrl = 'mongodb://localhost:27017';
+//const dbUrl = 'mongodb://localhost:27017';
+const dbUrl = 'mongodb://mongodb:27017';
 const dbName = 'hs-leaderboards-snapshots';
 const dbClient = new mongoClient(dbUrl, { useUnifiedTopology: true });
 
