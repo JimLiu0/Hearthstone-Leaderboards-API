@@ -4,6 +4,26 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
+const axios = require('axios').default;
+const nodeCron = require('node-cron');
+const mongoClient = require('mongodb').MongoClient;
+
+const dbUrl = 'mongodb://localhost:27017';
+const dbName = 'hs-leaderboards-snapshots';
+const dbClient = new mongoClient(dbUrl, { useUnifiedTopology: true });
+
+function connectToDb(dbName) {
+  return dbClient.connect((err) => {
+    if (err) {
+      console.log(err);
+    } else {
+      console.log('Connected to db');
+      let database = dbClient.db(dbName);
+      getLeaderboards(database);
+    }
+  });
+}
+
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 
@@ -38,4 +58,29 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
-module.exports = app;
+function getLeaderboards(db) {
+  
+  axios.get('https://owen-public-production-bucket.s3.amazonaws.com/hearthstone-leaderboard/current-leaderboard.json').then(response => {
+    const currentDate = new Date();
+    addSnapshotToDB(db, currentDate, response.data, 'hourly');
+  }).catch((error) => {
+    console.log(error);
+  });
+}
+
+function addSnapshotToDB(db, date, data, collectionName) {
+  const snapshot = {
+    'date': date,
+    'data': data
+  };
+
+  db.collection(collectionName).insertOne(snapshot, (err, result) => {
+    if (err) {
+      console.log('DB insertion error: ' + err);
+    } else {
+      console.log('Snapshot added');
+    }
+  });
+}
+
+connectToDb(dbName);
