@@ -5,7 +5,7 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
 const axios = require('axios').default;
-const nodeCron = require('node-cron');
+const cron = require('node-cron');
 const mongoClient = require('mongodb').MongoClient;
 
 const dbUrl = 'mongodb://localhost:27017';
@@ -19,7 +19,10 @@ function connectToDb(dbName) {
     } else {
       console.log('Connected to db');
       let database = dbClient.db(dbName);
-      getLeaderboards(database);
+
+      cron.schedule('0 * * * *', () => {
+        getLeaderboards(database);
+      });
     }
   });
 }
@@ -59,7 +62,6 @@ app.use(function(err, req, res, next) {
 });
 
 function getLeaderboards(db) {
-  
   axios.get('https://owen-public-production-bucket.s3.amazonaws.com/hearthstone-leaderboard/current-leaderboard.json').then(response => {
     const currentDate = new Date();
     addSnapshotToDB(db, currentDate, response.data, 'hourly');
